@@ -14,7 +14,7 @@ class APIServer {
         http.createServer((req, res) => {
             this.handleRequest(req, res)
         }).listen(this.port, () => {
-            console.log(`Server running on http://localhost:${this.port}`);
+            console.log(`Server running on https://comp4537-lab3-8fa5.onrender.com`);
         });
     }
 
