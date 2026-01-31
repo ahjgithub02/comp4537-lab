@@ -14,9 +14,9 @@ class MathAddSubtract {
 const math = new MathAddSubtract();
 
 exports.add = function (a, b) {
-  return math.add(a + b);
+  return math.add(a, b);
 };
 
 exports.subtract = function (a, b) {
-  return math.add(a - b);
+  return math.add(a, b);
 };
