@@ -1,71 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <title>Lab 5 - Patient DB</title>
 </head>
-
 <body>
-    <h1>Patient Database Management</h1>
-
-    <button id="insertBtn">Insert Default Patients</button>
-
+    <h1></h1> <button id="insertBtn"></button>
+    
     <hr>
-
-    <h3>Run SELECT Query</h3>
-    <textarea id="sqlQuery" rows="4" cols="50" placeholder="SELECT * FROM patient"></textarea>
+    
+    <h3></h3> <textarea id="sqlQuery" rows="4" cols="50"></textarea>
     <br>
-    <button id="submitQuery">Submit Query</button>
+    <button id="submitQuery"></button>
 
     <div id="response"></div>
 
-    <script>
-        // Replace this with your actual DigitalOcean API URL (Origin 2)
-        const API_URL = "https://your-lab5-api.ondigitalocean.app/lab5/api/v1/sql";
-
-        const responseDiv = document.getElementById('response');
-
-        // 1. Insert Button - Requirement: POST request with hardcoded rows
-        document.getElementById('insertBtn').addEventListener('click', async () => {
-            // These are the rows defined in your lab requirements
-            const patients = [
-                { name: "Sara Brown", dateOfBirth: "1901-01-01" },
-                { name: "John Smith", dateOfBirth: "1941-01-01" },
-                { name: "Jack Ma", dateOfBirth: "1961-01-30" },
-                { name: "Elon Musk", dateOfBirth: "1999-01-01" }
-            ];
-
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(patients)
-                });
-                const data = await response.text();
-                responseDiv.innerHTML = `<pre>${data}</pre>`;
-            } catch (error) {
-                responseDiv.innerText = "Error: " + error.message;
-            }
-        });
-
-        // 2. Submit Query - Requirement: GET request with SQL from textarea
-        document.getElementById('submitQuery').addEventListener('click', async () => {
-            const rawQuery = document.getElementById('sqlQuery').value;
-
-            // Requirement: Encode the URL correctly for browser/server handling
-            const encodedQuery = encodeURIComponent(rawQuery);
-            const finalUrl = `${API_URL}/${encodedQuery}`;
-
-            try {
-                const response = await fetch(finalUrl, { method: 'GET' });
-                const data = await response.text();
-                responseDiv.innerHTML = `<pre>${data}</pre>`;
-            } catch (error) {
-                responseDiv.innerText = "Error: " + error.message;
-            }
-        });
-    </script>
+    <script type="module" src="./js/script.js"></script>
 </body>
-
 </html>

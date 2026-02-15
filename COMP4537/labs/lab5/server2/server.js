@@ -3,7 +3,6 @@ import url from 'url';
 
 export class DatabaseServer {
     constructor() {
-        // Requirement: Separately store user strings
         this.dbConfig = {
             host: process.env.DB_HOST, // Set this in DigitalOcean Environment Variables
             database: 'comp4537_lab',
