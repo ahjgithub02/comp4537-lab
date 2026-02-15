@@ -1,78 +1,72 @@
-const http = require('http');
-const mysql = require('mysql2'); // You can use 'mysql' or 'mysql2'
-const url = require('url');
+import mysql from 'mysql2';
+import url from 'url';
 
-// DB Configurations - Separate user strings as required by rubric
-const adminConfig = {
-    host: 'YOUR_DB_HOST',
-    user: 'lab_admin',
-    password: 'admin_password_123',
-    database: 'comp4537_lab'
-};
-
-const readOnlyConfig = {
-    host: 'YOUR_DB_HOST',
-    user: 'lab_read_only',
-    password: 'guest_password_123',
-    database: 'comp4537_lab'
-};
-
-const server = http.createServer((req, res) => {
-    // 1. Set CORS headers so Server 1 can talk to Server 2
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    if (req.method === 'OPTIONS') {
-        res.writeHead(200);
-        res.end();
-        return;
+export class DatabaseServer {
+    constructor() {
+        // Requirement: Separately store user strings
+        this.dbConfig = {
+            host: process.env.DB_HOST, // Set this in DigitalOcean Environment Variables
+            database: 'comp4537_lab',
+            port: 3306
+        };
+        // Least Privilege credentials
+        this.adminAuth = { user: 'lab_admin', password: 'admin_password_123' };
+        this.readOnlyAuth = { user: 'lab_read_only', password: 'guest_password_123' };
     }
 
-    const parsedUrl = url.parse(req.url, true);
-    const path = parsedUrl.pathname;
+    handleRequest(req, res) {
+        const parsedUrl = url.parse(req.url, true);
+        const path = parsedUrl.pathname;
 
-    // 2. Handle POST (Insert Default Patients)
-    if (path === '/lab5/api/v1/sql' && req.method === 'POST') {
+        if (req.method === 'POST' && path.includes('/api/v1/sql')) {
+            this.handleInsert(req, res);
+        } else if (req.method === 'GET' && path.includes('/api/v1/sql/')) {
+            this.handleQuery(req, res, path);
+        } else {
+            res.writeHead(404);
+            res.end("Lab 5 Path Not Found");
+        }
+    }
+
+    handleInsert(req, res) {
         let body = '';
         req.on('data', chunk => { body += chunk; });
         req.on('end', () => {
-            const connection = mysql.createConnection(adminConfig);
-            // Requirement: Check for table and use Engine=InnoDB
-            const createTableQuery = `CREATE TABLE IF NOT EXISTS patient (
+            const conn = mysql.createConnection({ ...this.dbConfig, ...this.adminAuth });
+            
+            // Requirement: Use ENGINE=InnoDB
+            const createTable = `CREATE TABLE IF NOT EXISTS patient (
                 patient_id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(255),
                 date_of_birth DATE
             ) ENGINE=InnoDB;`;
 
-            connection.query(createTableQuery, (err) => {
+            conn.query(createTable, (err) => {
                 if (err) { res.end("Error creating table"); return; }
                 
-                // Logic to insert rows from the POST body...
-                res.end("Table verified and data inserted!");
-                connection.end();
+                const patients = JSON.parse(body);
+                const values = patients.map(p => [p.name, p.dateOfBirth]);
+                const insertQuery = "INSERT INTO patient (name, date_of_birth) VALUES ?";
+                
+                conn.query(insertQuery, [values], (err) => {
+                    res.writeHead(200);
+                    res.end(err ? "Insert error" : "Data inserted successfully.");
+                    conn.end();
+                });
             });
         });
     }
 
-    // 3. Handle GET (SQL Query from Textarea)
-    if (req.method === 'GET' && path.startsWith('/lab5/api/v1/sql/')) {
-        // Decode the query from the URL
-        const sqlQuery = decodeURIComponent(path.replace('/lab5/api/v1/sql/', ''));
+    handleQuery(req, res, path) {
+        const sqlQuery = decodeURIComponent(path.split('/sql/')[1]);
         
-        // Use the Read-Only user to enforce Principle of Least Privilege
-        const connection = mysql.createConnection(readOnlyConfig);
-        connection.query(sqlQuery, (err, results) => {
-            if (err) {
-                res.end("Access Denied or Syntax Error: " + err.message);
-            } else {
-                res.end(JSON.stringify(results));
-            }
-            connection.end();
+        // Security requirement: Use Read-Only user for SELECT
+        const conn = mysql.createConnection({ ...this.dbConfig, ...this.readOnlyAuth });
+        
+        conn.query(sqlQuery, (err, results) => {
+            res.writeHead(err ? 403 : 200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(err ? { error: "Access Denied: " + err.message } : results));
+            conn.end();
         });
     }
-});
-
-server.listen(8888, () => {
-    console.log('Server 2 running on port 8888');
-});
+}
